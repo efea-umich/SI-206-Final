@@ -9,6 +9,8 @@ mnrows = min(fakeDB.shape()[0], realDB.shape()[0])
 fakeDB = fakeDB.truncate(after=mnrows - 1)
 realDB = realDB.truncate(after=mnrows - 1)
 
-for string in clear
-start_header = "\w+ - \(\w+\)"
-re.sub(start_header, "", string)
+#loop through the tables here
+
+for index, row in realDB.iterrows():
+    start_header = "\w+ - \(\w+\)"
+    re.sub(start_header, "", row)

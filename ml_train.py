@@ -4,6 +4,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 import pickle
+'''what version is this'''
 
 num_words = 75000
 
