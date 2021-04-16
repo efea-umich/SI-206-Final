@@ -2,28 +2,22 @@ from keras.layers import *
 from keras.models import Sequential
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
+from process_data import DataProcessor
 import numpy as np
 import pickle
 '''what version is this'''
 
-num_words = 75000
+num_words = 200000
 
+dp = DataProcessor()
 
-onion, real = ()
+x, y = dp.getData()
 
-x = np.concatenate([onion, real])
-y = np.concatenate([np.ones(onion.shape), np.zeros(real.shape)])
-
-print(x[15000])
-# Assign the same random permutation to x (headlines) and y (labels)
-p = np.random.permutation(len(x))
-x = x[p]
-y = y[p]
 
 # Assign token to each word present in headlines
 tokenizer = Tokenizer(filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n\'`’‘\\')
 tokenizer.fit_on_texts(x)
-max_len = 200
+max_len = dp.getMaxWords()
 trainX = tokenizer.texts_to_sequences(x)
 trainX = pad_sequences(trainX, max_len)
 indexLen = len(tokenizer.word_index)
