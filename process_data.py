@@ -16,8 +16,8 @@ class DataProcessor:
     maxWords = -1
 
     def __init__(self):
-        fakeDB = pd.read_csv("Fake.csv")
-        realDB = pd.read_csv("True.csv")
+        fakeDB = pd.read_csv("static/Fake.csv")
+        realDB = pd.read_csv("static/True.csv")
 
         mnrows = min(fakeDB.shape[0], realDB.shape[0])
         mnrows = 5000
@@ -39,6 +39,8 @@ class DataProcessor:
         y = y[p]
         return (x, y)
 
+    def getDatasets(self):
+        return self.realDB, self.fakeDB
 
 if TESTING:
     dp = DataProcessor()
