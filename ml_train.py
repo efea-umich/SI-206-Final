@@ -11,7 +11,7 @@ num_words = 200000
 
 dp = DataProcessor()
 
-x, y = dp.getData()
+x, y = dp.getTrainingData()
 
 
 # Assign token to each word present in headlines
