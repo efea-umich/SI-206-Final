@@ -1,7 +1,10 @@
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
+
+TESTING = False
+
 
 def removeArticleStart(text):
     return re.sub(r'^[A-Z ]+ \(\w+\) - ', "", text)
@@ -17,9 +20,10 @@ class DataProcessor:
         realDB = pd.read_csv("True.csv")
 
         mnrows = min(fakeDB.shape[0], realDB.shape[0])
-        self.fakeDB = fakeDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:400])
-        self.realDB = realDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:400])
-        self.maxWords = max(fakeDB["text"].apply(lambda x: len(x.split())).max(), realDB["text"].apply(lambda x: len(x.split())).max())
+        mnrows = 5000
+        self.fakeDB = fakeDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:10000])
+        self.realDB = realDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:10000])
+        self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())
 
     def getMaxWords(self):
         return self.maxWords
@@ -35,3 +39,8 @@ class DataProcessor:
         y = y[p]
         return (x, y)
 
+
+if TESTING:
+    dp = DataProcessor()
+    print(len(dp.getData()[0]))
+    print(dp.getMaxWords())

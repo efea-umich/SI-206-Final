@@ -7,7 +7,12 @@ import numpy as np
 import pickle
 '''what version is this'''
 
-num_words = 200000
+# GPU won't work without the next three lines
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+
+num_words = 250000
 
 dp = DataProcessor()
 
@@ -36,4 +41,4 @@ model = Sequential([
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 model.fit(trainX, y, epochs=2, validation_split=0.2)
-model.save('./onion_harvester_woah.h5')
+model.save('./onion_harvester_woah_v2.h5')
