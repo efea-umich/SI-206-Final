@@ -7,7 +7,13 @@ TESTING = False
 
 
 def removeArticleStart(text):
+    assert isinstance(text, str)
     return re.sub(r'^[A-Z ]+ \(\w+\) - ', "", text)
+
+def removeLastSentence(text):
+    assert isinstance(text, str)
+    
+
 
 
 class DataProcessor:

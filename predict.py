@@ -27,7 +27,7 @@ max_len = dp.getMaxWords()
 
 seqs = tokenizer.texts_to_sequences(seqs)
 seqs = pad_sequences(seqs, max_len)
-model = keras.models.load_model('./onion_harvester_woah.h5')
+model = keras.models.load_model('static/onion_harvester_woah.h5')
 assert isinstance(model, keras.models.Model)
 
 #preds = list(model.predict(seqs))
