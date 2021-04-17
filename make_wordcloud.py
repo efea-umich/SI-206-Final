@@ -19,5 +19,3 @@ wc = WordCloud(stopwords=STOPWORDS, height=1080, width=1920)
 f_wc = wc.generate(fakeString)
 #r_wc.to_file('static/visualizations/realWordCloud.png')
 f_wc.to_file('static/visualizations/fakeWordCloud.png')
-
-

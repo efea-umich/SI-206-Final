@@ -5,17 +5,6 @@ import re
 
 TESTING = False
 
-
-def removeArticleStart(text):
-    assert isinstance(text, str)
-    return re.sub(r'^[A-Z ]+ \(\w+\) - ', "", text)
-
-def removeLastSentence(text):
-    assert isinstance(text, str)
-    
-
-
-
 class DataProcessor:
     fakeDB = None
     realDB = None
@@ -27,8 +16,8 @@ class DataProcessor:
 
         mnrows = min(fakeDB.shape[0], realDB.shape[0])
         mnrows = 5000
-        self.fakeDB = fakeDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:10000])
-        self.realDB = realDB.truncate(after=mnrows - 1)["text"].apply(removeArticleStart).apply(lambda x: x[:10000])
+        self.fakeDB = fakeDB.truncate(after=mnrows - 1)["text"].apply(lambda x: x[:10000])
+        self.realDB = realDB.truncate(after=mnrows - 1)["text"].apply(lambda x: x[:10000])
         self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())
 
     def getMaxWords(self):
