@@ -21,9 +21,24 @@ First, we pulled real and fake news articles and their headlines from a publicly
 
 ## Setting Up Your Own Virtual Environment
 
+Install the VirtualEnv package.
+
 `py -m pip install virtualenv`
-`\venv\Scripts\activate`
 
-We have written a list of package/library requirements for the project in requirements.txt
+Next, create a folder for the virtual environment.
 
-To exit: `deactivate`
+`py -m virtualenv venv`
+
+Activating your virtual environment:
+
+`.\\venv\Scripts\activate #for Windows`
+
+We have written a list of package/library requirements for the project in requirements.txt.
+
+Download all necessary packages to run this project:
+
+`py -m pip install -r requirements.txt`
+
+To exit:
+
+`deactivate`
