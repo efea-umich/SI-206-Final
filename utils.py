@@ -11,6 +11,10 @@ def removeFeaturedVia(text):
 def removeMultSpc(text):
     return re.sub('\s+', ' ', text)
 
+def fixConctracs(text):
+    return re.sub(r" (s|nt|t)\b", r"'\1", text)
+
+
 f = pd.read_csv('static/Fake.csv')
-f["text"] = f["text"].apply(removeLinks).apply(removeFeaturedVia).apply(removeMultSpc)
+f["text"] = f["text"].apply(removeLinks).apply(removeFeaturedVia).apply(fixConctracs).apply(removeMultSpc)
 f.to_csv('static/Fake_Cleaned.csv')
