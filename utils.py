@@ -16,18 +16,14 @@ def removeMultSpc(text):
 
 def fixConctracs(text):
     return re.sub(r" (s|nt|t)\b", r"'\1", text)
-'''
+
 f = pd.read_csv('static/Fake.csv')
 f["text"] = f["text"].apply(removeLinks).apply(removeFeaturedVia).apply(fixConctracs).apply(removeMultSpc)
 f.to_csv('static/Fake_Cleaned.csv')
-'''
-count = 0
+
 def removeArticleStart(text):
-    global count
-    count += len(re.findall('^.+ \(\w+\) - ', text))
     return re.sub('^.+ \(\w+\) - ', "", text)
 
 t = pd.read_csv('static/True.csv')
 t["text"] = t["text"].apply(removeArticleStart).apply(removeLinks).apply(removeFeaturedVia).apply(fixConctracs).apply(removeMultSpc)
 t.to_csv('static/True_Cleaned.csv')
-print(count)
