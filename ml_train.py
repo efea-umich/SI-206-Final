@@ -5,6 +5,12 @@ from keras.preprocessing.sequence import pad_sequences
 from process_data import DataProcessor
 import numpy as np
 import pickle
+
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+
+
 '''what version is this'''
 
 num_words = 200000

@@ -34,7 +34,7 @@ class DataProcessor:
     def getMaxWords(self):
         return self.maxWords
 
-    def getData(self):
+    def getTrainingData(self):
         # Merge real and fake into one array and create labels
         x = np.concatenate([self.realDB.to_numpy(), self.fakeDB.to_numpy()])
         y = np.concatenate([np.zeros(self.realDB.shape[0]), np.ones(self.fakeDB.shape[0])])

@@ -22,16 +22,11 @@ with open('./onion_tokenizer.pyc', 'rb') as pickleHand:
     tokenizer = pickle.load(pickleHand)
 assert isinstance(tokenizer, Tokenizer)
 
-seqs = real[:500].to_numpy()
+seqs = [""]
 max_len = dp.getMaxWords()
 
 seqs = tokenizer.texts_to_sequences(seqs)
 seqs = pad_sequences(seqs, max_len)
 model = keras.models.load_model('static/onion_harvester_woah.h5')
 assert isinstance(model, keras.models.Model)
-
-#preds = list(model.predict(seqs))
-
-#print(f"The onioniest article is: {preds.index(max(preds))}")
-
-print(real[124])
+print(model.predict(seqs))
