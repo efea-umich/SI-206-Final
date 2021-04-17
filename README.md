@@ -31,7 +31,7 @@ Next, create a folder for the virtual environment.
 
 Activating your virtual environment:
 
-`.\\venv\Scripts\activate #for Windows`
+`.\\venv\Scripts\activate` (for Windows)
 
 We have written a list of package/library requirements for the project in requirements.txt.
 
