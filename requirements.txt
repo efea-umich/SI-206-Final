@@ -3,3 +3,4 @@ tensorflow
 pandas==1.2.4
 matplotlib==3.4.1
 wordcloud==1.8.1
+lxml
