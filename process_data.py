@@ -11,13 +11,12 @@ class DataProcessor:
     maxWords = -1
 
     def __init__(self):
-        fakeDB = pd.read_csv("static/Fake.csv")
-        realDB = pd.read_csv("static/True.csv")
+        fakeDB = pd.read_csv("static/Fake_Cleaned.csv")
+        realDB = pd.read_csv("static/True_Cleaned.csv")
 
-        mnrows = min(fakeDB.shape[0], realDB.shape[0])
-        mnrows = 5000
-        self.fakeDB = fakeDB.truncate(after=mnrows - 1)["text"].apply(lambda x: x[:10000])
-        self.realDB = realDB.truncate(after=mnrows - 1)["text"].apply(lambda x: x[:10000])
+        mnrows = int(min(fakeDB.shape[0], realDB.shape[0]))
+        self.fakeDB = fakeDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
+        self.realDB = realDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
         self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())
 
     def getMaxWords(self):

@@ -3,6 +3,7 @@ from keras.models import Sequential
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from process_data import DataProcessor
+import tensorflow as tf
 import numpy as np
 import pickle
 
@@ -41,5 +42,5 @@ model = Sequential([
 ])
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-model.fit(trainX, y, epochs=2, validation_split=0.2)
+model.fit(trainX, y, epochs=1, validation_split=0.2)
 model.save('./onion_harvester_woah.h5')

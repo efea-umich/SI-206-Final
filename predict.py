@@ -9,24 +9,29 @@ import pickle
 import keras
 import tensorflow as tf
 from process_data import DataProcessor
+import sqlite3
 
 # GPU won't work without the next three lines
 physical_devices = tf.config.list_physical_devices('GPU')
 if len(physical_devices) > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-
 dp = DataProcessor()
-real, fake = dp.getDatasets()
+conn = sqlite3.Connection('static/onion_barn.db')
+cur = conn.cursor()
+cur.execute("SELECT body FROM Clickhole")
+test_articles = np.array(list(map(lambda x: x[0], cur.fetchall())))
 
 with open('./onion_tokenizer.pyc', 'rb') as pickleHand:
     tokenizer = pickle.load(pickleHand)
 assert isinstance(tokenizer, Tokenizer)
 
-seqs = [""]
+seqs = test_articles
 max_len = dp.getMaxWords()
 
 seqs = tokenizer.texts_to_sequences(seqs)
 seqs = pad_sequences(seqs, max_len)
 model = keras.models.load_model('static/onion_harvester_woah.h5')
 assert isinstance(model, keras.models.Model)
-print(model.predict(seqs))
+print(test_articles)
+preds = list(map(lambda x: "Real" if x < 0.5 else "Fake", model.predict(seqs)))
+print(preds)
