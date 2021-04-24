@@ -10,6 +10,8 @@ import keras
 import tensorflow as tf
 from process_data import DataProcessor
 import sqlite3
+from utils import processData
+import csv
 
 # GPU won't work without the next three lines
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -17,9 +19,9 @@ if len(physical_devices) > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 dp = DataProcessor()
 conn = sqlite3.Connection('static/onion_barn.db')
-cur = conn.cursor()
-cur.execute("SELECT body FROM Clickhole")
-test_articles = np.array(list(map(lambda x: x[0], cur.fetchall())))
+df = pd.read_sql_query("SELECT body FROM AP_News", conn)
+test_articles = processData(df, 'body').to_numpy()
+test_articles = list(map(lambda x: x[0], test_articles))
 
 with open('./onion_tokenizer.pyc', 'rb') as pickleHand:
     tokenizer = pickle.load(pickleHand)
@@ -27,11 +29,16 @@ assert isinstance(tokenizer, Tokenizer)
 
 seqs = test_articles
 max_len = dp.getMaxWords()
-
+seqs = []
 seqs = tokenizer.texts_to_sequences(seqs)
 seqs = pad_sequences(seqs, max_len)
-model = keras.models.load_model('static/onion_harvester_woah.h5')
+model = keras.models.load_model('static_headlines/onion_harvester_woah.h5')
 assert isinstance(model, keras.models.Model)
 print(test_articles)
-preds = list(map(lambda x: "Real" if x < 0.5 else "Fake", model.predict(seqs)))
+predVals = model.predict(seqs)
+preds = list(map(lambda x: "Real" if x < 0.5 else "Fake", predVals))
 print(preds)
+with open('predictions.csv', 'w', encoding='utf-8') as outHand:
+    out = csv.writer(outHand)
+    for i in range(0, len(preds)):
+        out.writerow([test_articles[i], preds[i], predVals[i]])
