@@ -15,6 +15,7 @@ class DataProcessor:
         realDB = pd.read_csv("static/True_Cleaned.csv")
 
         mnrows = int(min(fakeDB.shape[0], realDB.shape[0]))
+        mnrows = 2000
         self.fakeDB = fakeDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
         self.realDB = realDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
         self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())

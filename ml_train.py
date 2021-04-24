@@ -42,5 +42,5 @@ model = Sequential([
 ])
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-model.fit(trainX, y, epochs=1, validation_split=0.2)
+model.fit(trainX, y, epochs=2, validation_split=0.2)
 model.save('./onion_harvester_woah.h5')
