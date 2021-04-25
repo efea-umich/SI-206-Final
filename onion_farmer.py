@@ -1,8 +1,9 @@
-import bs4
+from bs4 import BeautifulSoup
 import requests
 import sqlite3
 import re
 import time
+import json
 
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
@@ -20,14 +21,14 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
     counter = 0
     cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
     while counter < numArticles:
-        soup = bs4.BeautifulSoup(requests.get(f"https://clickhole.com/category/news/page/{page}/").text, 'html.parser')
+        soup = BeautifulSoup(requests.get(f"https://clickhole.com/category/news/page/{page}/").text, 'html.parser')
         for el in soup.find_all("h2", class_="post-title"):
             try:
                 if verbose:
                     print(f"Getting article #{counter+1}")
                 else:
                     print(f"Getting articles... {int(counter / numArticles * 100)}%", end='\r')
-                articleSoup = bs4.BeautifulSoup(requests.get(el.find("a")['href']).text, 'html.parser')
+                articleSoup = BeautifulSoup(requests.get(el.find("a")['href']).text, 'html.parser')
                 cur.execute("INSERT OR IGNORE INTO Clickhole (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="post-content").text), "Clickhole"))
                 if verbose:
                     print("Article gotten and stored. Waiting for a second before moving on to the next article")
@@ -47,11 +48,11 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
 def scrapeAP(numArticles=50, verbose=False):
     counter = 0
     cur.execute("CREATE TABLE IF NOT EXISTS AP_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
-    articleSoup = bs4.BeautifulSoup(requests.get("https://apnews.com/hub/world-news").text, 'html.parser')
+    articleSoup = BeautifulSoup(requests.get("https://apnews.com/hub/world-news").text, 'html.parser')
     for el in articleSoup.find_all("div", class_='FeedCard'):
         try:
             path = el.find('a')['href']
-            articleSoup = bs4.BeautifulSoup(requests.get(f'https://apnews.com{path}').text, 'html.parser')
+            articleSoup = BeautifulSoup(requests.get(f'https://apnews.com{path}').text, 'html.parser')
             cur.execute("INSERT OR IGNORE INTO AP_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="Article").text), "AP News"))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
@@ -74,11 +75,11 @@ def scrapeAP(numArticles=50, verbose=False):
 def scrapeCNN(numArticles=50, verbose=False):
     counter = 0
     cur.execute("CREATE TABLE IF NOT EXISTS CNN (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
-    articleSoup = bs4.BeautifulSoup(requests.get("http://rss.cnn.com/rss/cnn_topstories.rss").text, 'xml')
+    articleSoup = BeautifulSoup(requests.get("http://rss.cnn.com/rss/cnn_topstories.rss").text, 'xml')
     for el in articleSoup.find_all("item"):
         try:
             path = el.find('link').text
-            articleSoup = bs4.BeautifulSoup(requests.get(path).text, 'html.parser')
+            articleSoup = BeautifulSoup(requests.get(path).text, 'html.parser')
             cur.execute("INSERT OR IGNORE INTO CNN (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('section', class_='zn-body-text').text), "CNN"))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
@@ -101,13 +102,13 @@ def scrapeCNN(numArticles=50, verbose=False):
 def scrapeFox(numArticles=50, verbose=False):
     counter = 0
     cur.execute("CREATE TABLE IF NOT EXISTS Fox_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
-    articleSoup = bs4.BeautifulSoup(requests.get("https://www.foxnews.com/").text, 'html.parser')
+    articleSoup = BeautifulSoup(requests.get("https://www.foxnews.com/").text, 'html.parser')
     for el in articleSoup.find_all("article"):
         try:
             path = el.find('a')['href']
             if re.search('video\.foxnews', path):
                 continue
-            articleSoup = bs4.BeautifulSoup(requests.get(path).text, 'html.parser')
+            articleSoup = BeautifulSoup(requests.get(path).text, 'html.parser')
             cur.execute("INSERT OR IGNORE INTO Fox_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="article-body").text), "Fox News"))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
@@ -127,7 +128,54 @@ def scrapeFox(numArticles=50, verbose=False):
     conn.commit()
 
 
+#Uses the PushShift API to get the [num] most-commented-on posts from the specified subreddit posted in the last [days] days.
+def getPosts(sub, days=30, num=25):
+    #Getting the current time (UNIX format)
+    curr = int(time.time())
 
+    #PushShift API query
+    #This query will:
+    # -Get [num] submissions(posts) from the specified subreddit that satisfy these conditions:
+    # -Posted in the last [days] days from when this function is called
+    # -Sorted by descending order of number of comments
+
+    base = 'https://api.pushshift.io'
+
+    quer = ("/reddit/search/submission/?subreddit=" + sub +
+            "&sort=desc&sort_type=num_comments"
+            "&after=" + str(curr - (days * 24 * 60 * 60)) +
+            "&before=" + str(curr) +
+            "&size=" + str(num))
+
+    r = requests.get(base + quer)
+
+    #Load the JSON data into a Python object
+    data = json.loads(r.text)
+    print(type(data))
+    return data
+
+def redditDB(data):
+    conn = sqlite3.Connection('static/onion_barn.db')
+    cur = conn.cursor()
+
+    #Creates a Reddit table with id, link, title, and numComments columns.
+    #Prevents duplicates by making the link column unique values only.
+    cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, link TEXT UNIQUE, title Text, numComments INTEGER)")
+    for d in data['data']:
+        link = d['url']
+        title = d['title']
+        numComments = d['num_comments']
+        cur.execute("INSERT OR IGNORE INTO Reddit (link, title, numComments) VALUES (?,?,?)",
+                    (link, title, numComments))
+    conn.commit()
+
+def scrape(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r, 'html.parser')
+    text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
+
+data = getPosts('TheOnion', 30, 25)
+redditDB(data)
 
 
 
