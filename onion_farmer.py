@@ -153,13 +153,22 @@ def scrapeFox(numArticles=50, verbose=False):
     insertPreds("Fox_News")
 
 
-def redditDB(sub, days=30, num_articles=25, verbose=False):
+def redditOnion(sub, days=30, num_articles=25, verbose=False):
     conn = sqlite3.Connection('static/onion_barn.db')
     cur = conn.cursor()
     counter = 0
+
+    cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, title TEXT, link TEXT UNIQUE, num_comments NUMERIC, created NUMERIC)")
     cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
-#Getting the current time (UNIX format)
-    curr = int(time.time())
+    
+    timeUpper = cur.execute("SELECT MIN(created) FROM Reddit").fetchone()[0]
+
+    if timeUpper == None:
+        timeUpper = time.time()
+
+    '''
+    Then look back 30 more days to find more posts.
+    '''
 
     #PushShift API query
     #This query will:
@@ -171,8 +180,8 @@ def redditDB(sub, days=30, num_articles=25, verbose=False):
 
     quer = ("/reddit/search/submission/?subreddit=" + sub +
             "&sort=desc&sort_type=num_comments"
-            "&after=" + str(curr - (days * 24 * 60 * 60)) +
-            "&before=" + str(curr) +
+            "&after=" + str(timeUpper - (days * 24 * 60 * 60)) +
+            "&before=" + str(timeUpper) +
             "&size=" + str(num_articles))
 
     r = requests.get(base + quer)
@@ -188,11 +197,15 @@ def redditDB(sub, days=30, num_articles=25, verbose=False):
         link = d['url']
         title = d['title']
         numComments = d['num_comments']
+        datePosted = d['created_utc']
+
         try:
             r = requests.get(link)
             soup = BeautifulSoup(r.text, 'html.parser')
             text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
             cur.execute("INSERT OR IGNORE INTO The_Onion (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(text), "The Onion"))
+            cur.execute("INSERT OR IGNORE INTO Reddit (link, title, num_comments, created) VALUES (?, ?, ?, ?)", (link, title, numComments, datePosted))
+
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
             else:
@@ -208,8 +221,8 @@ def redditDB(sub, days=30, num_articles=25, verbose=False):
             print("Done with retrieving articles.")
             conn.commit()
             break
-    conn.close()
 
+    conn.close()
     insertPreds("The_Onion")
 
 
@@ -252,8 +265,8 @@ elif choice == 4:
 elif choice == 5:
     numToScrape = int(input("Enter the number of articles you would like to scrape:"))
     if len(command) > 1 and command[1] == '-v':
-        redditDB('theOnion', verbose=True)
+        redditOnion('theOnion', numToScrape, verbose=True)
     else:
-        redditDB('theOnion')
+        redditOnion('theOnion', numToScrape)
 
 
