@@ -160,11 +160,13 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
 
     cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, title TEXT, link TEXT UNIQUE, num_comments NUMERIC, created NUMERIC)")
     cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
-    
+
     timeUpper = cur.execute("SELECT MIN(created) FROM Reddit").fetchone()[0]
 
     if timeUpper == None:
         timeUpper = time.time()
+
+    timeUpper = int(timeUpper)
 
     #PushShift API query
     #This query will:
@@ -261,8 +263,8 @@ elif choice == 4:
 elif choice == 5:
     numToScrape = int(input("Enter the number of articles you would like to scrape:"))
     if len(command) > 1 and command[1] == '-v':
-        redditOnion('theOnion', numToScrape, verbose=True)
+        redditOnion('theOnion', 30, numToScrape, verbose=True)
     else:
-        redditOnion('theOnion', numToScrape)
+        redditOnion('theOnion', 30, numToScrape)
 
 
