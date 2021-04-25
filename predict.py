@@ -13,7 +13,7 @@ import sqlite3
 from utils import processData
 import csv
 
-def getPreds(df):
+def getPreds(df, out=None):
     # GPU won't work without the next three lines
     physical_devices = tf.config.list_physical_devices('GPU')
     if len(physical_devices) > 0:
@@ -40,10 +40,11 @@ def getPreds(df):
     predVals = model.predict(seqs)
     preds = list(map(lambda x: "Real" if x < 0.75 else "Fake", predVals))
     print(preds)
-    with open('predictions.csv', 'w', encoding='utf-8') as outHand:
-        out = csv.writer(outHand)
-        for i in range(0, len(preds)):
-            out.writerow([test_articles_raw[i], preds[i], predVals[i]])
+    if out:
+        with open('predictions.csv', 'w', encoding='utf-8') as outHand:
+            out = csv.writer(outHand)
+            for i in range(0, len(preds)):
+                out.writerow([test_articles_raw[i], preds[i], predVals[i]])
     
     return [preds, predVals]
 

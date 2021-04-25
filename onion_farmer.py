@@ -5,6 +5,7 @@ import re
 import time
 import json
 from predict import getPreds
+import pandas as pd
 
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
@@ -53,11 +54,12 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
     print("Running predictions for articles")
     
     df = pd.read_sql_query("SELECT body FROM Clickhole WHERE pred IS NULL AND predVal IS NULL", conn)
+    bodies = list(map(lambda x: x[0], df.to_numpy()))
     preds, predVals = getPreds(df)
-
+    predVals = list(map(lambda x: float(x[0]), predVals))
     for i in range(len(preds)):
-        cur.execute("UPDATE Clickhole SET pred = (?), predVal = (?) WHERE pred IS NULL AND predVal IS NULL", (preds[i], predVals[i]))
-        conn.commit()
+        cur.execute("UPDATE Clickhole SET pred = (?), predVal = (?) WHERE body = ?", (preds[i], predVals[i], bodies[i]))
+    conn.commit()
 
 def scrapeAP(numArticles=50, verbose=False):
     counter = 0
@@ -141,32 +143,6 @@ def scrapeFox(numArticles=50, verbose=False):
             return
     conn.commit()
 
-
-#Uses the PushShift API to get the [num] most-commented-on posts from the specified subreddit posted in the last [days] days.
-def getPosts():
-    #Getting the current time (UNIX format)
-    curr = int(time.time())
-
-    #PushShift API query
-    #This query will:
-    # -Get [num] submissions(posts) from the specified subreddit that satisfy these conditions:
-    # -Posted in the last [days] days from when this function is called
-    # -Sorted by descending order of number of comments
-
-    base = 'https://api.pushshift.io'
-
-    quer = ("/reddit/search/submission/?subreddit=" + sub +
-            "&sort=desc&sort_type=num_comments"
-            "&after=" + str(curr - (days * 24 * 60 * 60)) +
-            "&before=" + str(curr) +
-            "&size=" + str(num))
-
-    r = requests.get(base + quer)
-
-    #Load the JSON data into a Python object
-    data = json.loads(r.text)
-    print(type(data))
-    return data
 
 def redditDB(sub, days=30, num_articles=25, verbose=False):
     conn = sqlite3.Connection('static/onion_barn.db')
