@@ -4,6 +4,7 @@ import sqlite3
 import re
 import time
 import json
+from predict import getPreds
 
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
@@ -19,7 +20,7 @@ def dropArticles():
 
 def scrapeClickhole(numArticles=2, page=1, verbose=False):
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal REAL)")
     while counter < numArticles:
         soup = BeautifulSoup(requests.get(f"https://clickhole.com/category/news/page/{page}/").text, 'html.parser')
         for el in soup.find_all("h2", class_="post-title"):
@@ -28,8 +29,12 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
                     print(f"Getting article #{counter+1}")
                 else:
                     print(f"Getting articles... {int(counter / numArticles * 100)}%", end='\r')
+                
                 articleSoup = BeautifulSoup(requests.get(el.find("a")['href']).text, 'html.parser')
-                cur.execute("INSERT OR IGNORE INTO Clickhole (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="post-content").text), "Clickhole"))
+                articleBody = cleanupWhiteSpace(articleSoup.find('div', class_="post-content").text)
+
+                cur.execute("INSERT OR IGNORE INTO Clickhole (body, news_source) VALUES (?, ?)", (articleBody, "Clickhole"))
+                
                 if verbose:
                     print("Article gotten and stored. Waiting for a second before moving on to the next article")
             except:
@@ -44,6 +49,15 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
             print("Waiting for 2 seconds before moving on to the next page")
         time.sleep(2)
         page += 1
+    
+    print("Running predictions for articles")
+    
+    df = pd.read_sql_query("SELECT body FROM Clickhole WHERE pred IS NULL AND predVal IS NULL", conn)
+    preds, predVals = getPreds(df)
+
+    for i in range(len(preds)):
+        cur.execute("UPDATE Clickhole SET pred = (?), predVal = (?) WHERE pred IS NULL AND predVal IS NULL", (preds[i], predVals[i]))
+        conn.commit()
 
 def scrapeAP(numArticles=50, verbose=False):
     counter = 0
@@ -209,9 +223,7 @@ def redditDB(sub, days=30, num_articles=25, verbose=False):
             print("Done with retrieving articles.")
             conn.commit()
             return
-
-
-conn.commit()
+    conn.close()
 
 
 
