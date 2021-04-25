@@ -1,5 +1,6 @@
 from keras.layers import *
 from keras.models import Sequential
+from keras.callbacks import ModelCheckpoint
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from process_data import DataProcessor
@@ -22,7 +23,7 @@ x, y = dp.getTrainingData()
 
 
 # Assign token to each word present in headlines
-tokenizer = Tokenizer(filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n\'`’‘\\')
+tokenizer = Tokenizer(filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n\'`’‘\\', num_words=num_words)
 tokenizer.fit_on_texts(x)
 max_len = dp.getMaxWords()
 trainX = tokenizer.texts_to_sequences(x)
@@ -33,7 +34,7 @@ with open('onion_tokenizer.pyc', 'wb') as pickleHand:
 
 # Define our deep learning model
 model = Sequential([
-    Embedding(indexLen+1, 20),
+    Embedding(indexLen+1, 256),
     LSTM(512, dropout=0.2, return_sequences=True),
     LSTM(256, dropout=0.2),
     Dense(1024, activation='relu'),
@@ -42,5 +43,8 @@ model = Sequential([
 ])
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-model.fit(trainX, y, epochs=2, validation_split=0.2)
+checkpoint = ModelCheckpoint(
+    'models/weights.{epoch:02d}.h5', monitor='val_loss'
+)
+model.fit(trainX, y, epochs=5, validation_split=0.2, callbacks=[checkpoint])
 model.save('./onion_harvester_woah.h5')

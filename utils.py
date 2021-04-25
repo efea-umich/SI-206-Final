@@ -24,13 +24,9 @@ def removeMultSpc(text):
 def fixConctracs(text):
     return re.sub(r" (s|nt|t)\b", r"'\1", text)
 
+def removeQuotes(text):
+    return re.sub(r"\".+\"", "", text)
 
-# Reads the data from Fake.csv and applies the transformations.
-f = pd.read_csv('static/Fake.csv')
-f["text"] = f["text"].apply(removeLinks).apply(removeFeaturedVia).apply(fixConctracs).apply(removeMultSpc)
-
-# Writes a new .csv file of the cleaned data.
-f.to_csv('static/Fake_Cleaned.csv')
 
 
 # Many of the real news articles start with a blurb that includes (REUTERS) -
@@ -45,6 +41,8 @@ def removeReuters(text):
 
 def removeParens(text):
     return re.sub('\(.+\)', ' ', text)
+def removeWeirdQuotes(text):
+    return re.sub('[’“‘”\.—–_]', " ", text)
 
 def stemmize(text):
     global progress
@@ -59,16 +57,18 @@ def stemmize(text):
 
 
 # Reads the data from True.csv and applies the transformations.
-t = pd.read_csv('static/True.csv')
+t = pd.read_csv('static/Fake.csv')
 print(len(t))
 # This time, to the titles as well, since many have Reuters in them.
 
 
-def processData(df, col, out=None):
-    df[col] = df[col].apply(removeArticleStart).apply(removeReuters).apply(removeLinks).apply(removeFeaturedVia).apply(
-        fixConctracs).apply(removeMultSpc).apply(removeReuters).apply(removeMultSpc).apply(removeParens).apply(stemmize)
+def processData(df, cols, out=None):
+    for col in cols:
+        df[col] = df[col].apply(removeArticleStart).apply(removeQuotes).apply(removeReuters).apply(removeLinks).apply(removeFeaturedVia).apply(
+            fixConctracs).apply(removeMultSpc).apply(removeReuters).apply(removeMultSpc).apply(removeParens).apply(stemmize).apply(removeWeirdQuotes)
     if out:
         df.to_csv(out)
     return df
 # Writes a new .csv file of the cleaned data.
-#processData(t, 'text', 'static/True_Cleaned.csv')
+if __name__ == "__main__":
+    processData(t, 'text', 'static/Fake_Cleaned.csv')

@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import re
 
-TESTING = False
-
 class DataProcessor:
     fakeDB = None
     realDB = None
@@ -15,9 +13,9 @@ class DataProcessor:
         realDB = pd.read_csv("static/True_Cleaned.csv")
 
         mnrows = int(min(fakeDB.shape[0], realDB.shape[0]))
-        mnrows = 2000
-        self.fakeDB = fakeDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
-        self.realDB = realDB[:mnrows - 1]["text"].apply(lambda x: str(x)[:10000])
+        mnrows = 2500
+        self.fakeDB = fakeDB[:mnrows - 1]["text"]
+        self.realDB = realDB[:mnrows - 1]["text"]
         self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())
 
     def getMaxWords(self):
@@ -37,7 +35,7 @@ class DataProcessor:
     def getDatasets(self):
         return self.realDB, self.fakeDB
 
-if TESTING:
+if __name__ == "__main__":
     dp = DataProcessor()
     print(len(dp.getData()[0]))
     print(dp.getMaxWords())

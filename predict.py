@@ -20,6 +20,9 @@ if len(physical_devices) > 0:
 dp = DataProcessor()
 conn = sqlite3.Connection('static/onion_barn.db')
 df = pd.read_sql_query("SELECT body FROM AP_News", conn)
+test_articles_raw = df.to_numpy()
+test_articles_raw = list(map(lambda x: x[0], test_articles_raw))
+
 test_articles = processData(df, 'body').to_numpy()
 test_articles = list(map(lambda x: x[0], test_articles))
 
@@ -29,16 +32,15 @@ assert isinstance(tokenizer, Tokenizer)
 
 seqs = test_articles
 max_len = dp.getMaxWords()
-seqs = []
 seqs = tokenizer.texts_to_sequences(seqs)
 seqs = pad_sequences(seqs, max_len)
-model = keras.models.load_model('static_headlines/onion_harvester_woah.h5')
+model = keras.models.load_model('static/onion_connoisseur.h5')
 assert isinstance(model, keras.models.Model)
 print(test_articles)
 predVals = model.predict(seqs)
-preds = list(map(lambda x: "Real" if x < 0.5 else "Fake", predVals))
+preds = list(map(lambda x: "Real" if x < 0.85 else "Fake", predVals))
 print(preds)
 with open('predictions.csv', 'w', encoding='utf-8') as outHand:
     out = csv.writer(outHand)
     for i in range(0, len(preds)):
-        out.writerow([test_articles[i], preds[i], predVals[i]])
+        out.writerow([test_articles_raw[i], preds[i], predVals[i]])
