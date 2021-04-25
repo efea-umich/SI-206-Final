@@ -166,10 +166,6 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
     if timeUpper == None:
         timeUpper = time.time()
 
-    '''
-    Then look back 30 more days to find more posts.
-    '''
-
     #PushShift API query
     #This query will:
     # -Get [num] submissions(posts) from the specified subreddit that satisfy these conditions:
