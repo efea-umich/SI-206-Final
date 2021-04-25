@@ -2,7 +2,10 @@ static/Fake.csv
 static/True.csv
 static/Fake_Cleaned.csv
 static/True_Cleaned.csv
+static/real_shortened.csv
+static/fake_shortened.csv
 venv
 static_headlines/onion_harvester_woah.h5
 .idea
 .idea
+static/onion_barn.db
