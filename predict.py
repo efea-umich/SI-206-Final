@@ -19,11 +19,11 @@ if len(physical_devices) > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 dp = DataProcessor()
 conn = sqlite3.Connection('static/onion_barn.db')
-df = pd.read_sql_query("SELECT body FROM AP_News", conn)
+df = pd.read_sql_query("SELECT body FROM The_Onion", conn)
 test_articles_raw = df.to_numpy()
 test_articles_raw = list(map(lambda x: x[0], test_articles_raw))
 
-test_articles = processData(df, 'body').to_numpy()
+test_articles = processData(df, ['body']).to_numpy()
 test_articles = list(map(lambda x: x[0], test_articles))
 
 with open('./onion_tokenizer.pyc', 'rb') as pickleHand:
@@ -38,7 +38,7 @@ model = keras.models.load_model('static/onion_connoisseur.h5')
 assert isinstance(model, keras.models.Model)
 print(test_articles)
 predVals = model.predict(seqs)
-preds = list(map(lambda x: "Real" if x < 0.85 else "Fake", predVals))
+preds = list(map(lambda x: "Real" if x < 0.75 else "Fake", predVals))
 print(preds)
 with open('predictions.csv', 'w', encoding='utf-8') as outHand:
     out = csv.writer(outHand)

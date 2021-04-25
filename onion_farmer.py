@@ -129,7 +129,7 @@ def scrapeFox(numArticles=50, verbose=False):
 
 
 #Uses the PushShift API to get the [num] most-commented-on posts from the specified subreddit posted in the last [days] days.
-def getPosts(sub, days=30, num=25):
+def getPosts():
     #Getting the current time (UNIX format)
     curr = int(time.time())
 
@@ -154,28 +154,64 @@ def getPosts(sub, days=30, num=25):
     print(type(data))
     return data
 
-def redditDB(data):
+def redditDB(sub, days=30, num_articles=25, verbose=False):
     conn = sqlite3.Connection('static/onion_barn.db')
     cur = conn.cursor()
+    counter = 0
+    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT)")
+#Getting the current time (UNIX format)
+    curr = int(time.time())
+
+    #PushShift API query
+    #This query will:
+    # -Get [num] submissions(posts) from the specified subreddit that satisfy these conditions:
+    # -Posted in the last [days] days from when this function is called
+    # -Sorted by descending order of number of comments
+
+    base = 'https://api.pushshift.io'
+
+    quer = ("/reddit/search/submission/?subreddit=" + sub +
+            "&sort=desc&sort_type=num_comments"
+            "&after=" + str(curr - (days * 24 * 60 * 60)) +
+            "&before=" + str(curr) +
+            "&size=" + str(num_articles))
+
+    r = requests.get(base + quer)
+
+    #Load the JSON data into a Python object
+    data = json.loads(r.text)
 
     #Creates a Reddit table with id, link, title, and numComments columns.
     #Prevents duplicates by making the link column unique values only.
-    cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, link TEXT UNIQUE, title Text, numComments INTEGER)")
+    #cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, link TEXT UNIQUE, title Text, numComments INTEGER)")
+
     for d in data['data']:
         link = d['url']
         title = d['title']
         numComments = d['num_comments']
-        cur.execute("INSERT OR IGNORE INTO Reddit (link, title, numComments) VALUES (?,?,?)",
-                    (link, title, numComments))
-    conn.commit()
+        try:
+            r = requests.get(link)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
+            cur.execute("INSERT OR IGNORE INTO The_Onion (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(text), "The Onion"))
+            if verbose:
+                print("Article gotten and stored. Waiting for a second before moving on to the next article")
+            else:
+                print(f"Getting articles... {int(counter / num_articles * 100)}%", end='\r')
+        except Exception as e:
+            print(f"Error getting article")
+        finally:
+            if verbose:
+                print("Sleeping for half a second...")
+            time.sleep(0.5)
+        counter += 1
+        if (counter == num_articles):
+            print("Done with retrieving articles.")
+            conn.commit()
+            return
 
-def scrape(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r, 'html.parser')
-    text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
 
-data = getPosts('TheOnion', 30, 25)
-redditDB(data)
+conn.commit()
 
 
 
@@ -183,7 +219,7 @@ redditDB(data)
 
 while True:
     try:
-        command = input("Select an operation (-v for verbose):\n0. Drop Database\n1. Scrape Clickhole (Satire)\n2. Scrape AP (Real News)\n3. Scrape CNN\n4. Scrape Fox\n").split()
+        command = input("Select an operation (-v for verbose):\n0. Drop Database\n1. Scrape Clickhole (Satire)\n2. Scrape AP (Real News)\n3. Scrape CNN\n4. Scrape Fox\n5. Scrape The Onion\n").split()
         choice = int(command[0])
         break
     except:
@@ -215,4 +251,11 @@ elif choice == 4:
         scrapeFox(numToScrape, verbose=True)
     else:
         scrapeFox(numToScrape)
+elif choice == 5:
+    numToScrape = int(input("Enter the number of articles you would like to scrape (FOR AP, THIS WILL BE VERY LIMITED. IF YOU ENTER MORE THAN THE ARTICLES WE CAN GET, WE WILL GET THE MAXIMUM NUMBER OF ARITCLES POSSIBLE):"))
+    if len(command) > 1 and command[1] == '-v':
+        redditDB('theOnion', verbose=True)
+    else:
+        redditDB('theOnion')
+
 
