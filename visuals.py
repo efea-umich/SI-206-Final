@@ -1,5 +1,7 @@
 import sqlite3
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
@@ -23,7 +25,7 @@ def mostCommented():
 
     postList = []
 
-    cur.execute("""SELECT Reddit.title, The_Onion.pred, The_Onion.predVal FROM Reddit 
+    cur.execute("""SELECT Reddit.title, Reddit.num_comments, The_Onion.pred, The_Onion.predVal FROM Reddit 
     JOIN The_ONION ON Reddit.link = Onion.link 
     ORDER BY Reddit.num_comments DESC""")
 
@@ -32,7 +34,24 @@ def mostCommented():
 
     return postList[:20]
 
+def mostCommScatter(postList):
+    comments = [i[1] for i in postList]
+    values = [i[3] for i in postList]
+
+    fig, ax = plt.subplots()
+    ax.scatter(comments, values)
+
+    ax.set_xlabel('Number of Comments')
+    ax.set_ylabel('Predicted Satire Level')
+    ax.set_title('Reddit Comments vs.Predicted Satire Level')
+
+    plt.show()
+
 
 print(avgPredVal('CNN'))
 print(percentRF('CNN'))
-print(mostCommented())
+
+postList = mostCommented()
+print(postList)
+
+mostCommScatter(postList)
