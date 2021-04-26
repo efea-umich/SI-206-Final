@@ -175,6 +175,8 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
     if timeUpper == None:
         timeUpper = time.time()
 
+    timeUpper = int(timeUpper)
+
     #PushShift API query
     #This query will:
     # -Get [num_articles] submissions(posts) from the specified subreddit that satisfy these conditions:
@@ -270,8 +272,8 @@ elif choice == 4:
 elif choice == 5:
     numToScrape = int(input("Enter the number of articles you would like to scrape:"))
     if len(command) > 1 and command[1] == '-v':
-        redditOnion('theOnion', numToScrape, verbose=True)
+        redditOnion('theOnion', 30, numToScrape, verbose=True)
     else:
-        redditOnion('theOnion', numToScrape)
+        redditOnion('theOnion', 30, numToScrape)
 
 
