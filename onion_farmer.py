@@ -158,9 +158,18 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
     cur = conn.cursor()
     counter = 0
 
+    #Creating a table for top Reddit posts from r/TheOnion.
     cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, title TEXT, link TEXT UNIQUE, num_comments NUMERIC, created NUMERIC)")
-    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
     
+    #Creating a table for the Onion headlines/article bodies
+    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, link TEXT, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    
+    #Creating another table for The Onion that has assigns Real/Fake to integeer indices.
+    cur.execute("CREATE TABLE IF NOT EXISTS RF (id INTEGER PRIMARY KEY, bool TEXT)")
+    cur.execute("INSERT INTO RF (id, bool) VALUES (?,?)", (0, "Real"))
+    cur.execute("INSERT INTO RF (bool) VALUES (?)", ("Fake",))
+    conn.commit()
+
     timeUpper = cur.execute("SELECT MIN(created) FROM Reddit").fetchone()[0]
 
     if timeUpper == None:
@@ -168,8 +177,8 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
 
     #PushShift API query
     #This query will:
-    # -Get [num] submissions(posts) from the specified subreddit that satisfy these conditions:
-    # -Posted in the last [days] days from when this function is called
+    # -Get [num_articles] submissions(posts) from the specified subreddit that satisfy these conditions:
+    # -Posted in the last [days] days from the earliest time in the database
     # -Sorted by descending order of number of comments
 
     base = 'https://api.pushshift.io'
@@ -199,7 +208,7 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
             r = requests.get(link)
             soup = BeautifulSoup(r.text, 'html.parser')
             text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
-            cur.execute("INSERT OR IGNORE INTO The_Onion (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(text), "The Onion"))
+            cur.execute("INSERT OR IGNORE INTO The_Onion (link, body, news_source) VALUES (?, ?, ?)", (link, cleanupWhiteSpace(text), "The Onion"))
             cur.execute("INSERT OR IGNORE INTO Reddit (link, title, num_comments, created) VALUES (?, ?, ?, ?)", (link, title, numComments, datePosted))
 
             if verbose:
