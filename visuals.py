@@ -7,15 +7,14 @@ import csv
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
 
-def avgPredVal(db):
-    df = pd.read_sql_query(f"SELECT predVal FROM {db}", conn)
-    
+def avgPredVal(id):
+    df = pd.read_sql_query(f"SELECT predVal FROM Preds WHERE news_source = ?", conn, params=(id,))
     return df['predVal'].mean()
 
-def percentRF(db):
-    df = pd.read_sql_query(f"SELECT pred FROM {db}", conn)
+def percentRF(id):
+    df = pd.read_sql_query(f"SELECT prediction FROM Preds WHERE news_source = ?", conn, params=(id,))
     
-    reals = df[df['pred'] == 'Real']
+    reals = df[df['prediction'] == 'Real']
 
     percentR = reals.shape[0] * 100 /df.shape[0]
     percentF = 100 - percentR
@@ -26,8 +25,10 @@ def mostCommented():
 
     postList = []
 
-    cur.execute("""SELECT Reddit.title, Reddit.num_comments, The_Onion.pred, The_Onion.predVal FROM Reddit 
-    JOIN The_ONION ON Reddit.link = The_Onion.link 
+    # 3 Joins Should Have Read The Rubric Beforehand Lol
+    cur.execute("""SELECT Reddit.title, Reddit.num_comments, Preds.prediction, Preds.predVal FROM Preds 
+    JOIN The_Onion ON Preds.article = The_Onion.body 
+    JOIN Reddit ON The_Onion.link = Reddit.link
     ORDER BY Reddit.num_comments DESC""")
 
     for c in cur:
@@ -46,46 +47,69 @@ def mostCommScatter(postList):
     ax.set_ylabel('Predicted Satire Level')
     ax.set_title('Reddit Comments vs.Predicted Satire Level')
 
-    plt.show()
 
-#Selecting all tables in the database that aren't named 'Reddit'
-def getNewsTables(cur, conn):
-    tablesList = []
+def realSatireByNetwork(idDict):
+    labels = list(map(lambda x: x[1], idDict.items()))
+    values = []
 
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'Reddit' AND name NOT LIKE 'RF' AND name NOT LIKE 'News_Sources'")
-    for c in cur:
-        tablesList.append(c[0])
-    print(tablesList)
-    return tablesList
+    for key in idDict:
+        values.append(avgPredVal(key))
 
-tablesList = getNewsTables(cur, conn)
+    fig, ax = plt.subplots()
+    ax.set_title("Mean Satire Score by News Source")
+    ax.barh(labels, values)
+    ax.set_yticklabels(labels)
+    fig.savefig('static/visuals/satire_by_network.svg')
 
-with open('static/caulculations.csv', 'w', encoding='utf-8') as csv_file:
-    #create a dictionary to store the values for each news source.
-    #Will make writing the CSV file easier.
-    data = []
-    
-    for t in range(len(tablesList)):
-        temp = {}
-        temp['News Source'] = tablesList[t]
-        temp['Average Predicted Satire Value'] = avgPredVal(tablesList[t])
-        r, f = percentRF(tablesList[t])
-        temp['Percent Predicted Real'] = r
-        temp['Percent Predicted Fake'] = f
+def realFakeByNetwork(idDict):
+    labels = list(map(lambda x: x[1], idDict.items()))
+    values = []
 
-        data.append(temp)
+    for key in idDict:
+        values.append(percentRF(key)[1])
 
-    cols = list(data[0].keys())
+    fig, ax = plt.subplots()
+    ax.set_title("% Fake Articles by News Source")
+    ax.barh(labels, values)
+    ax.set_yticklabels(labels)
+    fig.savefig('static/visuals/percent_fake_articles_by_network.svg')
 
-    csv_writer = csv.DictWriter(csv_file, fieldnames=cols)
-    
-    csv_writer.writeheader()
-    
+
+def writeCalculations(idDict):
+    with open('static/caulculations.csv', 'w', encoding='utf-8') as csv_file:
+        #create a dictionary to store the values for each news source.
+        #Will make writing the CSV file easier.
+        data = []
+
+        for k in idDict:
+            temp = {}
+            temp['News Source'] = idDict[k]
+            temp['Average Predicted Satire Value'] = avgPredVal(k)
+            r, f = percentRF(k)
+            temp['Percent Predicted Real'] = r
+            temp['Percent Predicted Fake'] = f
+
+            data.append(temp)
+
+        cols = list(data[0].keys())
+
+        csv_writer = csv.DictWriter(csv_file, fieldnames=cols)
+
+        csv_writer.writeheader()
+
     for d in data:
         csv_writer.writerow(d)
+
+idDict = cur.execute("SELECT id, news_source FROM News_Sources").fetchall()
+idDict = {a[0]: a[1] for a in idDict}
+
+
 
 
 postList = mostCommented()
 print(postList)
 
 mostCommScatter(postList)
+realFakeByNetwork(idDict)
+realSatireByNetwork(idDict)
+plt.show()

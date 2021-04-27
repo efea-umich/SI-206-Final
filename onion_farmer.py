@@ -10,6 +10,8 @@ import pandas as pd
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
 cur.execute("CREATE TABLE IF NOT EXISTS News_Sources(id INTEGER PRIMARY KEY, news_source TEXT UNIQUE)")
+cur.execute("CREATE TABLE IF NOT EXISTS Preds(id INTEGER PRIMARY KEY, article TEXT UNQIUE, news_source INTEGER, prediction TEXT, predVal NUMERIC)")
+
 
 def cleanupWhiteSpace(text):
     return re.sub("\s+", ' ', text)
@@ -20,20 +22,29 @@ def dropArticles():
     cur.execute("DROP TABLE IF EXISTS CNN")
     cur.execute("DROP TABLE IF EXISTS Fox_News")
     cur.execute("DROP TABLE IF EXISTS The_Onion")
+    cur.execute("DROP TABLE IF EXISTS Reddit")
+    cur.execute("DROP TABLE IF EXISTS News_Sources")
+    cur.execute("DROP TABLE IF EXISTS Preds")
+
+
+
 
 
 def insertPreds(table_name):
     conn.commit()
     print("Running predictions for articles")
-    df = pd.read_sql_query(f"SELECT body FROM {table_name} WHERE pred IS NULL AND predVal IS NULL", conn)
+    df = pd.read_sql_query(f"SELECT body, news_source FROM {table_name} WHERE pred IS NULL", conn)
     bodies = list(map(lambda x: x[0], df.to_numpy()))
+    news_sources = list(map(lambda x: x[1], df.to_numpy()))
+
     if len(df) == 0:
         print("No null pred values found.")
         return
     preds, predVals = getPreds(df)
     predVals = list(map(lambda x: float(x[0]), predVals))
     for i in range(len(preds)):
-        cur.execute(f"UPDATE {table_name} SET pred = (?), predVal = (?) WHERE body = ?", (preds[i], predVals[i], bodies[i]))
+        cur.execute(f"UPDATE {table_name} SET pred = 1 WHERE body = ?", (bodies[i],))
+        cur.execute("INSERT OR IGNORE INTO Preds (article, news_source, prediction, predVal) VALUES (?, ?, ?, ?)", (bodies[i], news_sources[i], preds[i], predVals[i]))
     conn.commit()
 
 
@@ -42,7 +53,7 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
     cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("Clickhole",))
     id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred INTEGER)")
     while counter < numArticles:
         soup = BeautifulSoup(requests.get(f"https://clickhole.com/category/news/page/{page}/").text, 'html.parser')
         for el in soup.find_all("h2", class_="post-title"):
@@ -72,14 +83,14 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
         time.sleep(2)
         page += 1
 
-        insertPreds("Clickhole")
+    insertPreds("Clickhole")
 
 def scrapeAP(numArticles=50, verbose=False):
     cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("AP_News",))
     cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("AP_News",))
     id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS AP_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS AP_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred INTEGER)")
     articleSoup = BeautifulSoup(requests.get("https://apnews.com/hub/world-news").text, 'html.parser')
     for el in articleSoup.find_all("div", class_='FeedCard'):
         try:
@@ -110,7 +121,7 @@ def scrapeCNN(numArticles=50, verbose=False):
     cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("CNN",))
     id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS CNN (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS CNN (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred INTEGER)")
     articleSoup = BeautifulSoup(requests.get("http://rss.cnn.com/rss/cnn_topstories.rss").text, 'xml')
     for el in articleSoup.find_all("item"):
         try:
@@ -141,7 +152,7 @@ def scrapeFox(numArticles=50, verbose=False):
     cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("Fox_News",))
     id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS Fox_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Fox_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred INTEGER)")
     articleSoup = BeautifulSoup(requests.get("https://www.foxnews.com/").text, 'html.parser')
     for el in articleSoup.find_all("article"):
         try:
@@ -179,7 +190,7 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
     cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, title TEXT, link TEXT UNIQUE, num_comments NUMERIC, created NUMERIC)")
     
     #Creating a table for the Onion headlines/article bodies
-    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, link TEXT, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, link TEXT, body TEXT UNIQUE, news_source INTEGER, pred INTEGER)")
     
     #Creating another table for The Onion that has assigns Real/Fake to integeer indices.
     cur.execute("CREATE TABLE IF NOT EXISTS RF (id INTEGER PRIMARY KEY, bool TEXT)")
@@ -262,34 +273,34 @@ while True:
     except:
         print("Please enter an integer.")
 if choice == 0:
-    if (input("Are you sure you want to DROP the table? Y/N") == "Y"):
+    if (input("Are you sure you want to DROP the table? Y/N\n") == "Y"):
         dropArticles()
 elif choice == 1:
-    numToScrape = int(input("Enter the number of articles you would like to scrape:"))
+    numToScrape = int(input("Enter the number of articles you would like to scrape: "))
     if len(command) > 1 and command[1] == '-v':
         scrapeClickhole(numToScrape, verbose=True)
     else:
         scrapeClickhole(numToScrape)
 elif choice == 2:
-    numToScrape = int(input("Enter the number of articles you would like to scrape (FOR AP, THIS WILL BE VERY LIMITED. IF YOU ENTER MORE THAN THE ARTICLES WE CAN GET, WE WILL GET THE MAXIMUM NUMBER OF ARITCLES POSSIBLE):"))
+    numToScrape = int(input("Enter the number of articles you would like to scrape (FOR AP, THIS WILL BE VERY LIMITED. IF YOU ENTER MORE THAN THE ARTICLES WE CAN GET, WE WILL GET THE MAXIMUM NUMBER OF ARITCLES POSSIBLE): "))
     if len(command) > 1 and command[1] == '-v':
         scrapeAP(numToScrape, verbose=True)
     else:
         scrapeAP(numToScrape)
 elif choice == 3:
-    numToScrape = int(input("Enter the number of articles you would like to scrape:"))
+    numToScrape = int(input("Enter the number of articles you would like to scrape: "))
     if len(command) > 1 and command[1] == '-v':
         scrapeCNN(numToScrape, verbose=True)
     else:
         scrapeCNN(numToScrape)
 elif choice == 4:
-    numToScrape = int(input("Enter the number of articles you would like to scrape:"))
+    numToScrape = int(input("Enter the number of articles you would like to scrape: "))
     if len(command) > 1 and command[1] == '-v':
         scrapeFox(numToScrape, verbose=True)
     else:
         scrapeFox(numToScrape)
 elif choice == 5:
-    numToScrape = int(input("Enter the number of articles you would like to scrape:"))
+    numToScrape = int(input("Enter the number of articles you would like to scrape: "))
     if len(command) > 1 and command[1] == '-v':
         redditOnion('theOnion', 30, numToScrape, verbose=True)
     else:
