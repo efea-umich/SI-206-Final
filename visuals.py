@@ -4,6 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 
+from wordcloud import STOPWORDS, WordCloud, ImageColorGenerator
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
 
@@ -100,16 +105,28 @@ def writeCalculations(idDict):
     for d in data:
         csv_writer.writerow(d)
 
+def makeWordcloud(df, name):
+
+    fakeString = "".join([art for art in df['article']])
+
+    wc = WordCloud(stopwords=STOPWORDS, height=1080, width=1920)
+
+    f_wc = wc.generate(fakeString)
+
+    f_wc.to_file(f'static/visuals/{name}WordCloud.png')
+
+
 idDict = cur.execute("SELECT id, news_source FROM News_Sources").fetchall()
 idDict = {a[0]: a[1] for a in idDict}
 
+real = pd.read_sql_query(f"SELECT article FROM Preds WHERE prediction = 'Real'", conn)
 
-
+fake = pd.read_sql_query(f"SELECT article FROM Preds WHERE prediction = 'Fake'", conn)
 
 postList = mostCommented()
-print(postList)
 
 mostCommScatter(postList)
 realFakeByNetwork(idDict)
 realSatireByNetwork(idDict)
-plt.show()
+makeWordcloud(fake, 'fake')
+makeWordcloud(real, 'real')
