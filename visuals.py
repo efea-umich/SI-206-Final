@@ -76,7 +76,7 @@ def realFakeByNetwork(idDict):
 
 
 def writeCalculations(idDict):
-    with open('static/caulculations.csv', 'w', encoding='utf-8') as csv_file:
+    with open('static/calculations.csv', 'w', encoding='utf-8') as csv_file:
         #create a dictionary to store the values for each news source.
         #Will make writing the CSV file easier.
         data = []
