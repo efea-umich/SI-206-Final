@@ -4,6 +4,7 @@ static/Fake_Cleaned.csv
 static/True_Cleaned.csv
 static/real_shortened.csv
 static/fake_shortened.csv
+static/calculations.csv
 venv
 static_headlines/onion_harvester_woah.h5
 .idea
