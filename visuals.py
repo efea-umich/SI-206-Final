@@ -130,3 +130,5 @@ realFakeByNetwork(idDict)
 realSatireByNetwork(idDict)
 makeWordcloud(fake, 'fake')
 makeWordcloud(real, 'real')
+
+plt.show()
