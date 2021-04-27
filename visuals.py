@@ -52,10 +52,10 @@ def mostCommScatter(postList):
 def getNewsTables(cur, conn):
     tablesList = []
 
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'Reddit'")
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'Reddit' AND name NOT LIKE 'RF' AND name NOT LIKE 'News_Sources'")
     for c in cur:
         tablesList.append(c[0])
-
+    print(tablesList)
     return tablesList
 
 tablesList = getNewsTables(cur, conn)
@@ -84,8 +84,8 @@ with open('static/caulculations.csv', 'w', encoding='utf-8') as csv_file:
     for d in data:
         csv_writer.writerow(d)
 
-'''
+
 postList = mostCommented()
 print(postList)
 
-mostCommScatter(postList)'''
+mostCommScatter(postList)
