@@ -13,11 +13,12 @@ class DataProcessor:
         realDB = pd.read_csv("static/True_Cleaned.csv")
 
         mnrows = int(min(fakeDB.shape[0], realDB.shape[0]))
-        mnrows = 2500
+        mnrows = 6000
         self.fakeDB = fakeDB[:mnrows - 1]["text"]
         self.realDB = realDB[:mnrows - 1]["text"]
         self.maxWords = max(self.fakeDB.apply(lambda x: len(x.split())).max(), self.realDB.apply(lambda x: len(x.split())).max())
 
+    # Gets maximum number of words
     def getMaxWords(self):
         return self.maxWords
 

@@ -9,6 +9,7 @@ import pandas as pd
 
 conn = sqlite3.Connection('static/onion_barn.db')
 cur = conn.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS News_Sources(id INTEGER PRIMARY KEY, news_source TEXT UNIQUE)")
 
 def cleanupWhiteSpace(text):
     return re.sub("\s+", ' ', text)
@@ -26,6 +27,9 @@ def insertPreds(table_name):
     print("Running predictions for articles")
     df = pd.read_sql_query(f"SELECT body FROM {table_name} WHERE pred IS NULL AND predVal IS NULL", conn)
     bodies = list(map(lambda x: x[0], df.to_numpy()))
+    if len(df) == 0:
+        print("No null pred values found.")
+        return
     preds, predVals = getPreds(df)
     predVals = list(map(lambda x: float(x[0]), predVals))
     for i in range(len(preds)):
@@ -34,8 +38,11 @@ def insertPreds(table_name):
 
 
 def scrapeClickhole(numArticles=2, page=1, verbose=False):
+    cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("Clickhole",))
+    cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("Clickhole",))
+    id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Clickhole (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
     while counter < numArticles:
         soup = BeautifulSoup(requests.get(f"https://clickhole.com/category/news/page/{page}/").text, 'html.parser')
         for el in soup.find_all("h2", class_="post-title"):
@@ -48,7 +55,7 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
                 articleSoup = BeautifulSoup(requests.get(el.find("a")['href']).text, 'html.parser')
                 articleBody = cleanupWhiteSpace(articleSoup.find('div', class_="post-content").text)
 
-                cur.execute("INSERT OR IGNORE INTO Clickhole (body, news_source) VALUES (?, ?)", (articleBody, "Clickhole"))
+                cur.execute("INSERT OR IGNORE INTO Clickhole (body, news_source) VALUES (?, ?)", (articleBody, id))
                 
                 if verbose:
                     print("Article gotten and stored. Waiting for a second before moving on to the next article")
@@ -68,14 +75,17 @@ def scrapeClickhole(numArticles=2, page=1, verbose=False):
         insertPreds("Clickhole")
 
 def scrapeAP(numArticles=50, verbose=False):
+    cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("AP_News",))
+    cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("AP_News",))
+    id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS AP_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS AP_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
     articleSoup = BeautifulSoup(requests.get("https://apnews.com/hub/world-news").text, 'html.parser')
     for el in articleSoup.find_all("div", class_='FeedCard'):
         try:
             path = el.find('a')['href']
             articleSoup = BeautifulSoup(requests.get(f'https://apnews.com{path}').text, 'html.parser')
-            cur.execute("INSERT OR IGNORE INTO AP_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="Article").text), "AP News"))
+            cur.execute("INSERT OR IGNORE INTO AP_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="Article").text), id))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
             else:
@@ -96,14 +106,17 @@ def scrapeAP(numArticles=50, verbose=False):
 
 
 def scrapeCNN(numArticles=50, verbose=False):
+    cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("CNN",))
+    cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("CNN",))
+    id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS CNN (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS CNN (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
     articleSoup = BeautifulSoup(requests.get("http://rss.cnn.com/rss/cnn_topstories.rss").text, 'xml')
     for el in articleSoup.find_all("item"):
         try:
             path = el.find('link').text
             articleSoup = BeautifulSoup(requests.get(path).text, 'html.parser')
-            cur.execute("INSERT OR IGNORE INTO CNN (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('section', class_='zn-body-text').text), "CNN"))
+            cur.execute("INSERT OR IGNORE INTO CNN (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('section', class_='zn-body-text').text), id))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
             else:
@@ -124,8 +137,11 @@ def scrapeCNN(numArticles=50, verbose=False):
 
 
 def scrapeFox(numArticles=50, verbose=False):
+    cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("Fox_News",))
+    cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("Fox_News",))
+    id = cur.fetchone()[0]
     counter = 0
-    cur.execute("CREATE TABLE IF NOT EXISTS Fox_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Fox_News (id INTEGER PRIMARY KEY, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
     articleSoup = BeautifulSoup(requests.get("https://www.foxnews.com/").text, 'html.parser')
     for el in articleSoup.find_all("article"):
         try:
@@ -133,7 +149,7 @@ def scrapeFox(numArticles=50, verbose=False):
             if re.search('video\.foxnews', path):
                 continue
             articleSoup = BeautifulSoup(requests.get(path).text, 'html.parser')
-            cur.execute("INSERT OR IGNORE INTO Fox_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="article-body").text), "Fox News"))
+            cur.execute("INSERT OR IGNORE INTO Fox_News (body, news_source) VALUES (?, ?)", (cleanupWhiteSpace(articleSoup.find('div', class_="article-body").text), id))
             if verbose:
                 print("Article gotten and stored. Waiting for a second before moving on to the next article")
             else:
@@ -154,20 +170,21 @@ def scrapeFox(numArticles=50, verbose=False):
 
 
 def redditOnion(sub, days=30, num_articles=25, verbose=False):
-    conn = sqlite3.Connection('static/onion_barn.db')
-    cur = conn.cursor()
+    cur.execute("INSERT OR IGNORE INTO News_Sources (news_source) VALUES (?)", ("The_Onion",))
+    cur.execute("SELECT id FROM News_Sources WHERE news_source = ?", ("The_Onion",))
+    id = cur.fetchone()[0]
     counter = 0
 
     #Creating a table for top Reddit posts from r/TheOnion.
     cur.execute("CREATE TABLE IF NOT EXISTS Reddit (id INTEGER PRIMARY KEY, title TEXT, link TEXT UNIQUE, num_comments NUMERIC, created NUMERIC)")
     
     #Creating a table for the Onion headlines/article bodies
-    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, link TEXT, body TEXT UNIQUE, news_source TEXT, pred TEXT, predVal NUMERIC)")
+    cur.execute("CREATE TABLE IF NOT EXISTS The_Onion (id INTEGER PRIMARY KEY, link TEXT, body TEXT UNIQUE, news_source INTEGER, pred TEXT, predVal NUMERIC)")
     
     #Creating another table for The Onion that has assigns Real/Fake to integeer indices.
     cur.execute("CREATE TABLE IF NOT EXISTS RF (id INTEGER PRIMARY KEY, bool TEXT)")
-    cur.execute("INSERT INTO RF (id, bool) VALUES (?,?)", (0, "Real"))
-    cur.execute("INSERT INTO RF (bool) VALUES (?)", ("Fake",))
+    cur.execute("INSERT OR IGNORE INTO RF (id, bool) VALUES (?, ?)", (0, "Real"))
+    cur.execute("INSERT OR IGNORE INTO RF (id, bool) VALUES (?, ?)", (1, "Fake",))
     conn.commit()
 
     timeUpper = cur.execute("SELECT MIN(created) FROM Reddit").fetchone()[0]
@@ -189,7 +206,7 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
             "&sort=desc&sort_type=num_comments"
             "&after=" + str(timeUpper - (days * 24 * 60 * 60)) +
             "&before=" + str(timeUpper) +
-            "&size=" + str(num_articles))
+            "&size=" + str(min(num_articles, 25)))
 
     r = requests.get(base + quer)
 
@@ -210,7 +227,7 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
             r = requests.get(link)
             soup = BeautifulSoup(r.text, 'html.parser')
             text = soup.find('p', class_='sc-77igqf-0 bOfvBY').text
-            cur.execute("INSERT OR IGNORE INTO The_Onion (link, body, news_source) VALUES (?, ?, ?)", (link, cleanupWhiteSpace(text), "The Onion"))
+            cur.execute("INSERT OR IGNORE INTO The_Onion (link, body, news_source) VALUES (?, ?, ?)", (link, cleanupWhiteSpace(text), id))
             cur.execute("INSERT OR IGNORE INTO Reddit (link, title, num_comments, created) VALUES (?, ?, ?, ?)", (link, title, numComments, datePosted))
 
             if verbose:
@@ -224,20 +241,22 @@ def redditOnion(sub, days=30, num_articles=25, verbose=False):
                 print("Sleeping for half a second...")
             time.sleep(0.5)
         counter += 1
-        if (counter == num_articles):
-            print("Done with retrieving articles.")
+        if (counter == min(num_articles, 25)):
+            if num_articles > 25:
+                redditOnion(sub, days, num_articles - 25, verbose=verbose)
+            else:
+                print("Done with retrieving articles.")
+                insertPreds("The_Onion")
             conn.commit()
             break
 
-    conn.close()
-    insertPreds("The_Onion")
 
 
 
 
 while True:
     try:
-        command = input("Select an operation (-v for verbose):\n0. Drop Database\n1. Scrape Clickhole (Satire)\n2. Scrape AP (Real News)\n3. Scrape CNN\n4. Scrape Fox\n5. Scrape The Onion\n").split()
+        command = input("Select an operation (-v for verbose):\n0. Drop Database\n1. Scrape Clickhole (Satire)\n2. Scrape AP (Real News)\n3. Scrape CNN\n4. Scrape Fox\n5. Scrape The Onion\n6. Insert predictions for null values in table\n").split()
         choice = int(command[0])
         break
     except:
@@ -276,4 +295,8 @@ elif choice == 5:
     else:
         redditOnion('theOnion', 30, numToScrape)
 
+elif choice == 6:
+    table_name = input("Table name: ")
+    insertPreds(table_name)
 
+conn.close()

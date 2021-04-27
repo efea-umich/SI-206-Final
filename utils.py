@@ -8,7 +8,7 @@ def removeLinks(text):
     return re.sub("[^\.][A-Za-z\.\/:]+(?:\.com|\.org|\.gov|\.us|\.edu|\.net|\.co|\.be)(?:\/[\w\/\?\-\!\#]+)?", "", text)
 
 
-# Removing the 'Featured Via' blurb tahat sometimes appears at the end of Onion articles.
+# Removing the 'Featured Via' blurb that sometimes appears at the end of Onion articles.
 def removeFeaturedVia(text):
     t = re.sub('[Pp]hoto by.+$', '', text)
     return re.sub('[Ff]eatured [Ii]m.+$', '', t)
@@ -60,7 +60,6 @@ def stemmize(text):
 t = pd.read_csv('static/Fake.csv')
 print(len(t))
 # This time, to the titles as well, since many have Reuters in them.
-
 
 def processData(df, cols, out=None):
     for col in cols:
