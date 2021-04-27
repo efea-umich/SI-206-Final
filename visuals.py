@@ -26,7 +26,7 @@ def mostCommented():
     postList = []
 
     cur.execute("""SELECT Reddit.title, Reddit.num_comments, The_Onion.pred, The_Onion.predVal FROM Reddit 
-    JOIN The_ONION ON Reddit.link = Onion.link 
+    JOIN The_ONION ON Reddit.link = The_Onion.link 
     ORDER BY Reddit.num_comments DESC""")
 
     for c in cur:
