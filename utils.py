@@ -24,6 +24,7 @@ def removeMultSpc(text):
 def fixConctracs(text):
     return re.sub(r" (s|nt|t)\b", r"'\1", text)
 
+# Removes quoted material from text.
 def removeQuotes(text):
     return re.sub(r"\".+\"", "", text)
 
@@ -38,9 +39,11 @@ def removeArticleStart(text):
 # Removes all occurences of the word Reuters that were not previously removed.
 def removeReuters(text):
     return re.sub('.?(?:Reuters|REUTERS)(?:\/\w+.|.)', " ", text)
-
+# Removes anything inside of parantheses.
 def removeParens(text):
     return re.sub('\(.+\)', ' ', text)
+
+# Removes weird quotes that are due to formatting and sometimes cause annoying situations.
 def removeWeirdQuotes(text):
     return re.sub('[’“‘”\.—–_]', " ", text)
 
@@ -56,10 +59,9 @@ def stemmize(text):
     return ' '.join(ws)
 
 
-# Reads the data from True.csv and applies the transformations.
-t = pd.read_csv('static/Fake.csv')
-print(len(t))
-# This time, to the titles as well, since many have Reuters in them.
+
+
+
 
 def processData(df, cols, out=None):
     for col in cols:
@@ -68,6 +70,18 @@ def processData(df, cols, out=None):
     if out:
         df.to_csv(out)
     return df
-# Writes a new .csv file of the cleaned data.
 if __name__ == "__main__":
-    processData(t, 'text', 'static/Fake_Cleaned.csv')
+    choice = int(input("Choose an operation\n1. Process both real and fake articles\n2. Process real articles\n3. Process fake articles"))
+    if choice == 1:
+        t = pd.read_csv('static/Fake.csv')
+        processData(t, 'text', 'static/Fake_Cleaned.csv')
+        t = pd.read_csv('static/True.csv')
+        processData(t, 'text', 'static/True_Cleaned.csv')
+    elif choice == 2:
+        t = pd.read_csv('static/True.csv')
+        processData(t, 'text', 'static/True_Cleaned.csv')
+    elif choice == 3:
+        t = pd.read_csv('static/Fake.csv')
+        processData(t, 'text', 'static/Fake_Cleaned.csv')
+
+

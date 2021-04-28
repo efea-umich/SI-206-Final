@@ -61,8 +61,10 @@ def realSatireByNetwork(idDict):
         values.append(avgPredVal(key))
 
     fig, ax = plt.subplots()
-    ax.set_title("Mean Satire Score by News Source")
+    ax.set_title("Mean Onion Score by News Source")
     ax.barh(labels, values)
+    ax.set_xlabel('Onion Score')
+    ax.set_ylabel('Networks')
     ax.set_yticklabels(labels)
     fig.savefig('static/visuals/satire_by_network.svg')
 
@@ -76,6 +78,8 @@ def realFakeByNetwork(idDict):
     fig, ax = plt.subplots()
     ax.set_title("% Fake Articles by News Source")
     ax.barh(labels, values)
+    ax.set_xlabel('% Fake Articles')
+    ax.set_ylabel('News Source')
     ax.set_yticklabels(labels)
     fig.savefig('static/visuals/percent_fake_articles_by_network.svg')
 
