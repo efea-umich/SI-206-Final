@@ -5,4 +5,5 @@ matplotlib==3.4.1
 wordcloud==1.8.1
 lxml
 beautifulsoup4==4.9.3
+numpy
 pip==21.1
